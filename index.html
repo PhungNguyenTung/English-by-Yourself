@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      (function () {
+        try {
+          var currentFetch = typeof window.fetch === 'function' ? window.fetch.bind(window) : undefined;
+          var patchTarget = function (target) {
+            if (!target) return;
+            var desc = Object.getOwnPropertyDescriptor(target, 'fetch');
+            if (!desc || desc.configurable !== false) {
+              Object.defineProperty(target, 'fetch', {
+                configurable: true,
+                enumerable: true,
+                get: function () {
+                  return currentFetch;
+                },
+                set: function (fn) {
+                  if (typeof fn === 'function') {
+                    currentFetch = fn;
+                  }
+                },
+              });
+            }
+          };
+          patchTarget(Window.prototype);
+          patchTarget(window);
+        } catch (err) {
+          // Ignore if environment locks property
+        }
+      })();
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>English by Yourself - Hoa Kẽm 20/10</title>
+    <meta name="description" content="Cửa hàng hoa kẽm nhung handmade đặc biệt chào mừng ngày Phụ nữ Việt Nam 20/10 của English by Yourself, tích hợp đặt hàng trực tuyến, ưu đãi sỉ tự động và quản trị cửa hàng thời gian thực." />
+    <meta property="og:title" content="English by Yourself - Hoa Kẽm 20/10" />
+    <meta property="og:description" content="Cửa hàng hoa kẽm nhung handmade đặc biệt chào mừng ngày Phụ nữ Việt Nam 20/10 của English by Yourself, tích hợp đặt hàng trực tuyến, ưu đãi sỉ tự động và quản trị cửa hàng thời gian thực." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

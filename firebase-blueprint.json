@@ -1,0 +1,368 @@
+{
+  "entities": {
+    "Category": {
+      "title": "Category",
+      "description": "Product category used for organizing flower bouquets and applying category-level quantity discounts.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Category display name.",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional category description.",
+          "maxLength": 250
+        },
+        "visibility": {
+          "type": "string",
+          "description": "Public visibility flag.",
+          "enum": ["public"]
+        },
+        "authorId": {
+          "type": "string",
+          "description": "UID of the admin who created the category.",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when updated."
+        }
+      },
+      "required": ["name", "description", "visibility", "authorId", "createdAt", "updatedAt"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "A handmade pipe-cleaner flower bouquet offered for the 20/10 collection.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the flower bouquet product.",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "price": {
+          "type": "number",
+          "description": "Base retail price in VND."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "Image URL or data URI of the bouquet.",
+          "maxLength": 900000
+        },
+        "categoryId": {
+          "type": "string",
+          "description": "ID of the Category this product belongs to.",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "categoryName": {
+          "type": "string",
+          "description": "Display name of the Category.",
+          "maxLength": 80
+        },
+        "isSoldOut": {
+          "type": "boolean",
+          "description": "Whether the product is currently sold out."
+        },
+        "visibility": {
+          "type": "string",
+          "description": "Visibility state for storefront listing.",
+          "enum": ["public", "archived"]
+        },
+        "authorId": {
+          "type": "string",
+          "description": "UID of the admin who created the product.",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the product was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the product was last updated."
+        }
+      },
+      "required": ["name", "price", "imageUrl", "isSoldOut", "visibility", "authorId", "createdAt", "updatedAt"]
+    },
+    "PromotionConfig": {
+      "title": "PromotionConfig",
+      "description": "Time-based promotional event configuration (overrides quantity discounts while active).",
+      "type": "object",
+      "properties": {
+        "isActive": {
+          "type": "boolean",
+          "description": "Whether the time-based promotional event is enabled."
+        },
+        "eventName": {
+          "type": "string",
+          "description": "Title of the time-based promotional event.",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "startDate": {
+          "type": "string",
+          "description": "Start date in YYYY-MM-DD format.",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "End date in YYYY-MM-DD format.",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "discountType": {
+          "type": "string",
+          "description": "Type of time-based discount.",
+          "enum": ["percent_off", "amount_off", "fixed_price"]
+        },
+        "discountValue": {
+          "type": "number",
+          "description": "Discount value (percentage 1-100 or VND amount)."
+        },
+        "targetCategoryId": {
+          "type": "string",
+          "description": "Category ID to apply the time promotion to, or 'all' for all products.",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "visibility": {
+          "type": "string",
+          "description": "Public visibility flag.",
+          "enum": ["public"]
+        },
+        "authorId": {
+          "type": "string",
+          "description": "UID of the admin who updated the promotion.",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when updated."
+        }
+      },
+      "required": ["startDate", "endDate", "visibility", "authorId", "createdAt", "updatedAt"]
+    },
+    "PromotionRule": {
+      "title": "PromotionRule",
+      "description": "Always-on quantity-based discount tier for a specific product Category (suspended only when a time-based promotion event is running).",
+      "type": "object",
+      "properties": {
+        "categoryId": {
+          "type": "string",
+          "description": "ID of the referenced Category document.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "categoryName": {
+          "type": "string",
+          "description": "Name of the referenced Category.",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "minQty": {
+          "type": "number",
+          "description": "Minimum total quantity in this category required to unlock the discount."
+        },
+        "discountType": {
+          "type": "string",
+          "description": "How the discount is calculated: fixed unit price, amount off per unit, or percent off.",
+          "enum": ["fixed_price", "amount_off", "percent_off"]
+        },
+        "price": {
+          "type": "number",
+          "description": "Discount value (VND or percentage)."
+        },
+        "visibility": {
+          "type": "string",
+          "description": "Public visibility flag.",
+          "enum": ["public"]
+        },
+        "authorId": {
+          "type": "string",
+          "description": "UID of the admin who created the rule.",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when updated."
+        }
+      },
+      "required": ["categoryId", "categoryName", "minQty", "discountType", "price", "visibility", "authorId", "createdAt", "updatedAt"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer order for 20/10 pipe-cleaner flowers containing recipient PII and bounded line items.",
+      "type": "object",
+      "properties": {
+        "customerId": {
+          "type": "string",
+          "description": "UID of the authenticated user who placed the order.",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "customerName": {
+          "type": "string",
+          "description": "Full name of the recipient.",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "phone": {
+          "type": "string",
+          "description": "Recipient phone number.",
+          "minLength": 8,
+          "maxLength": 20
+        },
+        "facebook": {
+          "type": "string",
+          "description": "Optional Facebook profile URL.",
+          "maxLength": 300
+        },
+        "address": {
+          "type": "string",
+          "description": "Class at THPT Ngo Quyen - Ba Vi or delivery address.",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "items": {
+          "type": "array",
+          "description": "Bounded list of ordered flower items (max 20)."
+        },
+        "originalTotal": {
+          "type": "number",
+          "description": "Total amount before discounts in VND."
+        },
+        "discountAmount": {
+          "type": "number",
+          "description": "Total discount saved in VND."
+        },
+        "finalTotal": {
+          "type": "number",
+          "description": "Final payable total in VND."
+        },
+        "cardMode": {
+          "type": "string",
+          "description": "Greeting card mode: none, shared card for whole order, or separate card per product.",
+          "enum": ["none", "shared", "per_item"]
+        },
+        "sharedCardMessage": {
+          "type": "string",
+          "description": "Shared greeting card message when cardMode is shared.",
+          "maxLength": 1000
+        },
+        "appliedPromoMode": {
+          "type": "string",
+          "description": "Which discount mechanism was applied to this order.",
+          "enum": ["none", "quantity_category", "time_event"]
+        },
+        "status": {
+          "type": "string",
+          "description": "Order processing state.",
+          "enum": ["new", "confirmed", "completed", "cancelled"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the order was submitted."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the order was last updated."
+        }
+      },
+      "required": [
+        "customerId",
+        "customerName",
+        "phone",
+        "facebook",
+        "address",
+        "items",
+        "originalTotal",
+        "discountAmount",
+        "finalTotal",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Trusted administrator record for RBAC.",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Verified administrator email.",
+          "minLength": 3,
+          "maxLength": 200
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when granted admin access."
+        }
+      },
+      "required": ["email", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/categories/{categoryId}": {
+      "schema": { "$ref": "#/entities/Category" },
+      "description": "Product categories managed by store administrators."
+    },
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Publicly visible 20/10 flower products managed by store administrators."
+    },
+    "/promotions/{promoId}": {
+      "schema": { "$ref": "#/entities/PromotionConfig" },
+      "description": "Saved time-based promotional events managed by store administrators."
+    },
+    "/promotionRules/{ruleId}": {
+      "schema": { "$ref": "#/entities/PromotionRule" },
+      "description": "Category-based quantity discount rules."
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Customer flower orders isolated to the ordering customer and store administrators."
+    },
+    "/admins/{adminId}": {
+      "schema": { "$ref": "#/entities/AdminUser" },
+      "description": "Administrator lookup table."
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "English by Yourself - Hoa Kẽm 20/10",
+  "description": "Cửa hàng hoa kẽm nhung handmade đặc biệt chào mừng ngày Phụ nữ Việt Nam 20/10 của English by Yourself, tích hợp đặt hàng trực tuyến, ưu đãi sỉ tự động và quản trị cửa hàng thời gian thực.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

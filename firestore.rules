@@ -1,0 +1,327 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net (Default-Deny Catch-All)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Hardened Global Primitives
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isBootstrappedOwner() {
+      return isVerifiedUser() && request.auth.token.email == 'phungnguyentung02@gmail.com';
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && (
+        isBootstrappedOwner() ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // Validation Blueprints
+    function isValidCategory(data) {
+      return data.keys().hasAll(['name', 'description', 'visibility', 'authorId', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['name', 'description', 'visibility', 'authorId', 'createdAt', 'updatedAt']) &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 80 &&
+        data.description is string && data.description.size() >= 0 && data.description.size() <= 250 &&
+        data.visibility is string && data.visibility.size() == 6 && data.visibility == 'public' &&
+        data.authorId is string && isValidId(data.authorId) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidProduct(data) {
+      return data.keys().hasAll(['name', 'price', 'imageUrl', 'isSoldOut', 'visibility', 'authorId', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly([
+          'name', 'price', 'imageUrl', 'categoryId', 'categoryName',
+          'isSoldOut', 'visibility', 'authorId', 'createdAt', 'updatedAt'
+        ]) &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+        (data.price is int || data.price is float) && data.price >= 0 && data.price <= 100000000 &&
+        data.imageUrl is string && data.imageUrl.size() >= 0 && data.imageUrl.size() <= 900000 &&
+        (!('categoryId' in data) || (data.categoryId is string && (data.categoryId.size() == 0 || isValidId(data.categoryId)))) &&
+        (!('categoryName' in data) || (data.categoryName is string && data.categoryName.size() >= 0 && data.categoryName.size() <= 80)) &&
+        data.isSoldOut is bool &&
+        data.visibility is string && data.visibility.size() >= 1 && data.visibility.size() <= 20 &&
+        (data.visibility == 'public' || data.visibility == 'archived') &&
+        data.authorId is string && isValidId(data.authorId) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidPromotionConfig(data) {
+      return data.keys().hasAll(['startDate', 'endDate', 'visibility', 'authorId', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly([
+          'isActive', 'eventName', 'startDate', 'endDate',
+          'discountType', 'discountValue', 'targetCategoryId',
+          'visibility', 'authorId', 'createdAt', 'updatedAt'
+        ]) &&
+        (!('isActive' in data) || data.isActive is bool) &&
+        (!('eventName' in data) || (data.eventName is string && data.eventName.size() >= 1 && data.eventName.size() <= 120)) &&
+        data.startDate is string && data.startDate.size() == 10 && data.startDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+        data.endDate is string && data.endDate.size() == 10 && data.endDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+        (!('discountType' in data) || (
+          data.discountType is string && data.discountType.size() >= 9 && data.discountType.size() <= 15 &&
+          (data.discountType == 'percent_off' || data.discountType == 'amount_off' || data.discountType == 'fixed_price')
+        )) &&
+        (!('discountValue' in data) || (
+          (data.discountValue is int || data.discountValue is float) &&
+          data.discountValue >= 0 && data.discountValue <= 100000000
+        )) &&
+        (!('targetCategoryId' in data) || (data.targetCategoryId is string && isValidId(data.targetCategoryId))) &&
+        data.visibility is string && data.visibility.size() == 6 && data.visibility == 'public' &&
+        data.authorId is string && isValidId(data.authorId) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidPromotionRule(data) {
+      return data.keys().hasAll(['categoryId', 'categoryName', 'minQty', 'discountType', 'price', 'visibility', 'authorId', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['categoryId', 'categoryName', 'minQty', 'discountType', 'price', 'visibility', 'authorId', 'createdAt', 'updatedAt']) &&
+        data.categoryId is string && isValidId(data.categoryId) &&
+        data.categoryName is string && data.categoryName.size() >= 1 && data.categoryName.size() <= 80 &&
+        data.minQty is int && data.minQty >= 2 && data.minQty <= 10000 &&
+        data.discountType is string && data.discountType.size() >= 9 && data.discountType.size() <= 15 &&
+        (data.discountType == 'fixed_price' || data.discountType == 'amount_off' || data.discountType == 'percent_off') &&
+        (data.price is int || data.price is float) && data.price >= 0 && data.price <= 100000000 &&
+        data.visibility is string && data.visibility.size() == 6 && data.visibility == 'public' &&
+        data.authorId is string && isValidId(data.authorId) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidOrder(data) {
+      return data.keys().hasAll([
+          'customerId', 'customerName', 'phone', 'facebook', 'address',
+          'items', 'originalTotal', 'discountAmount', 'finalTotal',
+          'status', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'customerId', 'customerName', 'phone', 'facebook', 'address',
+          'items', 'originalTotal', 'discountAmount', 'finalTotal',
+          'cardMode', 'sharedCardMessage', 'appliedPromoMode',
+          'status', 'createdAt', 'updatedAt'
+        ]) &&
+        data.customerId is string && isValidId(data.customerId) &&
+        data.customerName is string && data.customerName.size() >= 1 && data.customerName.size() <= 100 &&
+        data.phone is string && data.phone.size() >= 8 && data.phone.size() <= 20 &&
+        data.facebook is string && data.facebook.size() >= 0 && data.facebook.size() <= 300 &&
+        data.address is string && data.address.size() >= 1 && data.address.size() <= 500 &&
+        data.items is list && data.items.size() >= 1 && data.items.size() <= 20 &&
+        data.items[0] is map &&
+        (data.originalTotal is int || data.originalTotal is float) && data.originalTotal >= 0 && data.originalTotal <= 1000000000 &&
+        (data.discountAmount is int || data.discountAmount is float) && data.discountAmount >= 0 && data.discountAmount <= 1000000000 &&
+        (data.finalTotal is int || data.finalTotal is float) && data.finalTotal >= 0 && data.finalTotal <= 1000000000 &&
+        (!('cardMode' in data) || (
+          data.cardMode is string && data.cardMode.size() >= 4 && data.cardMode.size() <= 10 &&
+          (data.cardMode == 'none' || data.cardMode == 'shared' || data.cardMode == 'per_item')
+        )) &&
+        (!('sharedCardMessage' in data) || (
+          data.sharedCardMessage is string && data.sharedCardMessage.size() >= 0 && data.sharedCardMessage.size() <= 1000
+        )) &&
+        (!('appliedPromoMode' in data) || (
+          data.appliedPromoMode is string && data.appliedPromoMode.size() >= 4 && data.appliedPromoMode.size() <= 20 &&
+          (data.appliedPromoMode == 'none' || data.appliedPromoMode == 'quantity_category' || data.appliedPromoMode == 'time_event')
+        )) &&
+        data.status is string && data.status.size() >= 3 && data.status.size() <= 20 &&
+        (data.status == 'new' || data.status == 'confirmed' || data.status == 'completed' || data.status == 'cancelled') &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidAdmin(data) {
+      return data.keys().hasAll(['email', 'createdAt']) &&
+        data.keys().hasOnly(['email', 'createdAt']) &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 200 &&
+        data.createdAt is timestamp;
+    }
+
+    // 0. Categories Collection
+    match /categories/{categoryId} {
+      allow get: if isValidId(categoryId) && (resource == null || existing().visibility == 'public' || isAdmin());
+      allow list: if existing().visibility == 'public';
+
+      allow create: if isAdmin() &&
+        isValidId(categoryId) &&
+        isValidCategory(incoming()) &&
+        incoming().authorId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if isValidCategory(incoming()) &&
+        isAdmin() &&
+        isValidId(categoryId) &&
+        incoming().authorId == existing().authorId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'description', 'updatedAt']);
+
+      allow delete: if isAdmin() && isValidId(categoryId);
+    }
+
+    // 1. Products Collection
+    match /products/{productId} {
+      allow get: if isValidId(productId) && (resource == null || existing().visibility == 'public' || isAdmin());
+      allow list: if existing().visibility == 'public';
+
+      allow create: if isAdmin() &&
+        isValidId(productId) &&
+        isValidProduct(incoming()) &&
+        incoming().authorId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if isValidProduct(incoming()) &&
+        isAdmin() &&
+        isValidId(productId) &&
+        incoming().authorId == existing().authorId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        (
+          // Action 1: Toggle sold out status
+          incoming().diff(existing()).affectedKeys().hasOnly(['isSoldOut', 'updatedAt']) ||
+          // Action 2: Update category assignment
+          incoming().diff(existing()).affectedKeys().hasOnly(['categoryId', 'categoryName', 'updatedAt']) ||
+          // Action 3: Edit product details
+          incoming().diff(existing()).affectedKeys().hasOnly(['name', 'price', 'imageUrl', 'categoryId', 'categoryName', 'isSoldOut', 'visibility', 'updatedAt'])
+        );
+
+      allow delete: if isAdmin() && isValidId(productId);
+    }
+
+    // 2. Saved Time-Based Promotional Events Collection
+    match /promotions/{promoId} {
+      allow get: if isValidId(promoId) && (resource == null || existing().visibility == 'public' || isAdmin());
+      allow list: if existing().visibility == 'public';
+
+      allow create: if isAdmin() &&
+        isValidId(promoId) &&
+        isValidPromotionConfig(incoming()) &&
+        incoming().authorId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if isValidPromotionConfig(incoming()) &&
+        isAdmin() &&
+        isValidId(promoId) &&
+        incoming().authorId == existing().authorId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        (
+          // Action 1: Toggle active state of a saved event
+          incoming().diff(existing()).affectedKeys().hasOnly(['isActive', 'updatedAt']) ||
+          // Action 2: Edit saved promotional event details
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'isActive', 'eventName', 'startDate', 'endDate',
+            'discountType', 'discountValue', 'targetCategoryId', 'updatedAt'
+          ])
+        );
+
+      allow delete: if isAdmin() && isValidId(promoId);
+    }
+
+    // 3. Promotion Rules (Always-On Quantity Tiers per Category)
+    match /promotionRules/{ruleId} {
+      allow get: if isValidId(ruleId) && (resource == null || existing().visibility == 'public' || isAdmin());
+      allow list: if existing().visibility == 'public';
+
+      allow create: if isAdmin() &&
+        isValidId(ruleId) &&
+        isValidPromotionRule(incoming()) &&
+        incoming().authorId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        exists(/databases/$(database)/documents/categories/$(incoming().categoryId));
+
+      allow update: if isValidPromotionRule(incoming()) &&
+        isAdmin() &&
+        isValidId(ruleId) &&
+        incoming().authorId == existing().authorId &&
+        incoming().categoryId == existing().categoryId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['categoryName', 'minQty', 'discountType', 'price', 'updatedAt']) &&
+        exists(/databases/$(database)/documents/categories/$(incoming().categoryId));
+
+      allow delete: if isAdmin() && isValidId(ruleId);
+    }
+
+    // 4. Customer Orders (Strictly PII Isolated to Customer Owner or Admin)
+    match /orders/{orderId} {
+      allow get: if isSignedIn() && isValidId(orderId) && (existing().customerId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (existing().customerId == request.auth.uid || isBootstrappedOwner());
+
+      allow create: if isVerifiedUser() &&
+        isValidId(orderId) &&
+        isValidOrder(incoming()) &&
+        incoming().customerId == request.auth.uid &&
+        incoming().status == 'new' &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if isValidOrder(incoming()) &&
+        isVerifiedUser() &&
+        isValidId(orderId) &&
+        incoming().customerId == existing().customerId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        (
+          // Tier 1: Admin can update order status at any time
+          (
+            isAdmin() &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+          ) ||
+          // Tier 2: Customer can cancel their own order if it is still 'new'
+          (
+            existing().customerId == request.auth.uid &&
+            existing().status == 'new' &&
+            incoming().status == 'cancelled' &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+          )
+        );
+
+      allow delete: if isAdmin() && isValidId(orderId);
+    }
+
+    // 5. Admins Collection
+    match /admins/{adminId} {
+      allow get: if isSignedIn() && isValidId(adminId) && (request.auth.uid == adminId || isAdmin());
+      allow list: if false;
+
+      allow create: if isAdmin() &&
+        isValidId(adminId) &&
+        isValidAdmin(incoming()) &&
+        incoming().createdAt == request.time;
+
+      allow update: if isValidAdmin(incoming()) &&
+        isAdmin() &&
+        isValidId(adminId) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['email']);
+
+      allow delete: if isAdmin() && isValidId(adminId);
+    }
+  }
+}
